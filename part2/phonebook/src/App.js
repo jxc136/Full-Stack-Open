@@ -33,20 +33,23 @@ const App = () => {
         ` ${personObject.name} is already added to phonebook. Would you like to update their number?`
       );
       if (confirmUpdate) {
-        personsService.findByName(personObject.name).then((returnedPerson) => {
-          handleUpdate(returnedPerson);
-        });
+        handleUpdate(personObject);
       }
     } else {
-      personsService.create(personObject).then((returnedPerson) => {
-        setPersons(persons.concat(returnedPerson));
-        setNewName("");
-        setNewNumber(null);
-        setMessage(`Added ${returnedPerson.name}`);
-        setTimeout(() => {
-          setMessage(null);
-        }, 5000);
-      });
+      personsService
+        .create(personObject)
+        .then((returnedPerson) => {
+          setPersons(persons.concat(returnedPerson));
+          setNewName("");
+          setNewNumber(null);
+          setMessage(`Added ${returnedPerson.name}`);
+          setTimeout(() => {
+            setMessage(null);
+          }, 5000);
+        })
+        .catch((error) => {
+          setMessage(`${error.response.data.error}`);
+        });
     }
   };
 
@@ -76,19 +79,26 @@ const App = () => {
   };
 
   const handleUpdate = (foundPerson) => {
-    if (!foundPerson || !foundPerson[0] || !foundPerson[0].id) {
+    if (!foundPerson || !foundPerson.name || !foundPerson.number) {
       setMessage(
         `The contact you are trying to change was not found on the server`
       );
       return;
     }
-    const changedPerson = { ...foundPerson[0], number: newNumber };
+
+    const filter = persons.filter((person) => person.name === foundPerson.name);
+    const personObject = { ...foundPerson, id: filter[0].id };
+
+    const changedPerson = {
+      name: foundPerson.name,
+      number: foundPerson.number,
+    };
     personsService
-      .update(foundPerson[0].id, changedPerson)
+      .update(filter[0].id, changedPerson)
       .then((returnedPerson) => {
         setPersons(
           persons.map((person) =>
-            person.id !== foundPerson[0].id ? person : returnedPerson
+            person.id !== filter[0].id ? person : returnedPerson
           )
         );
         setMessage(`Updated ${returnedPerson.name}`);
